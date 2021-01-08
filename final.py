@@ -24,27 +24,24 @@ BigRewardNumber = []
 plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-
-# 自定義字體變數
-myfont = mpl.font_manager.FontProperties(
-    fname=r'/usr/local/lib/python3.6/dist-packages/matplotlib/mpl-data/fonts/ttf/taipei_sans_tc_beta.ttf')
+myfont = mpl.font_manager.FontProperties(fname=r'/usr/local/lib/python3.6/dist-packages/matplotlib/mpl-data/fonts/ttf/taipei_sans_tc_beta.ttf')
 
 class myGUI:
     def getRewardNumber(self,url):
-        # url='https://www.etax.nat.gov.tw/etw-main/web/ETW183W2_10709/'
         html = requests.get(url).content.decode('utf-8')
         sp = BeautifulSoup(html, 'html.parser')
 
         trList = sp.find('div', {'id': 'tablet01'}).find_all('tr')
-        BigRewardNumber = [trList[1].find('td').text, trList[3].find('td').text]
+
+        RewardNumber = [trList[1].find('td').text, trList[3].find('td').text]
         tmp = []
         for i in trList[5].find_all('p'):
             if len(i.text) != 0:
                 tmp.append(i.text)
-        BigRewardNumber.append(tmp)
-        BigRewardNumber.append(trList[12].find('td').text.split('、'))
-        # print(BigRewardNumber)
-        return BigRewardNumber
+        RewardNumber.append(tmp)
+        RewardNumber.append(trList[12].find('td').text.split('、'))
+
+        return RewardNumber
 
     def getReward(self,rewardNumber, targetNum, winTicket):
         if targetNum[-8:] == rewardNumber[0]:
@@ -99,7 +96,7 @@ class myGUI:
         return 0
 
     def cal(self,start, end):
-        if int(start[1])%2==0:
+        if not int(start[1])&1:
             start[1]=int(start[1])-1
 
         year = int(start[0])
@@ -107,12 +104,10 @@ class myGUI:
         threads = []
         while year < int(end[0]) or (year == int(end[0]) and month <= int(end[1])):
             if(month < 10):
-                threads.append(threading.Thread(target=self.search, args=(
-                    'https://www.etax.nat.gov.tw/etw-main/web/ETW183W3_'+str(year)+'0'+str(month),)))
+                threads.append(threading.Thread(target=self.search, args=('https://www.etax.nat.gov.tw/etw-main/web/ETW183W3_'+str(year)+'0'+str(month),)))
                 threads[len(threads)-1].start()
             else:
-                threads.append(threading.Thread(target=self.search, args=(
-                    'https://www.etax.nat.gov.tw/etw-main/web/ETW183W3_'+str(year)+str(month),)))
+                threads.append(threading.Thread(target=self.search, args=('https://www.etax.nat.gov.tw/etw-main/web/ETW183W3_'+str(year)+str(month),)))
                 threads[len(threads)-1].start()
             month += 2
             if(month > 12):
@@ -120,8 +115,6 @@ class myGUI:
                 year += 1
         for i in threads:
             i.join()
-        # print(dict1000)
-        # print(city1000)
 
     def search(self,url):
 
@@ -131,39 +124,37 @@ class myGUI:
         table1000 = sp.find('table', {'id': 'fbonly'})
         tr1000 = table1000.find_all('tr')
 
-        # testingTmp = url[:-7]+'2'+url[-6:]
-
         table200 = sp.find('table', {'id': 'fbonly_200'})
         tr200 = table200.find_all('tr')
-        lock.acquire()  # !!!!!!!!!!!!!!!
+
+
+        lock.acquire()  
         for link in tr1000[1:]:
 
             tdTable = link.find_all('td')
             for i, j in enumerate(tdTable):
                 tdTable[i] = j.text
             items = tdTable[4]
-            # print(items)
             addr = tdTable[3]
-            # print(addr)
             addr = addr[:3]
+
             if addr=='台北市':
                 addr='臺北市'
             if addr=='桃園縣':
                 addr='桃園市'
+            
             if addr in city1000:
                 city1000[addr] += 1
             else:
                 city1000[addr] = 1
-            # tmp_city=re.findall('([]*?)(縣|市)')
-            # print(addr,tmp_city)
+
             items = re.split('及|、|和', items)
             for i in items:
                 tmp = i.split('*')
                 tmp = re.split(
                     '，|共|等|計|一|二|三|四|五|六|七|八|九|0|1|2|3|4|5|6|7|8|9|,| ', tmp[0])[0]
-                if(len(tmp) < 1):
+                if not len(tmp):
                     continue
-                # print(tmp)
                 if tmp in dict1000:
                     dict1000[tmp] += 1
                 else:
@@ -175,11 +166,14 @@ class myGUI:
             for i, j in enumerate(tdTable):
                 tdTable[i] = j.text
             items = tdTable[4]
-            # print(items)
-
             addr = tdTable[3]
-            # print(addr)
             addr = addr[:3]
+
+            if addr=='台北市':
+                addr='臺北市'
+            if addr=='桃園縣':
+                addr='桃園市'
+
             if addr in city200:
                 city200[addr] += 1
             else:
@@ -192,12 +186,12 @@ class myGUI:
                     '，|共|等|計|一|二|三|四|五|六|七|八|九|0|1|2|3|4|5|6|7|8|9|,| ', tmp[0])[0]
                 if(len(tmp) < 1):
                     continue
-                # print(tmp)
                 if tmp in dict200:
                     dict200[tmp] += 1
                 else:
                     dict200[tmp] = 1
-        lock.release()  # !!!!!!!!!!!!!!!
+
+        lock.release() 
 
 
     def makeform(self, root, fields):
@@ -216,13 +210,10 @@ class myGUI:
         self.analyzeDate = []
         self.dictArr = []
         for entry in entries:
-            # field=entry[0]
             text = entry[1].get()
             self.analyzeDate.append(int(text))
 
-        print(self.analyzeDate)
-        self.cal([self.analyzeDate[0], self.analyzeDate[1]],
-            [self.analyzeDate[2], self.analyzeDate[3]])
+        self.cal([self.analyzeDate[0], self.analyzeDate[1]],[self.analyzeDate[2], self.analyzeDate[3]])
         self.drawChart()
 
     def __init__(self):
@@ -238,15 +229,12 @@ class myGUI:
         self.ents = self.makeform(self.master, self.fields)
         self.label = tk.Label(self.master, text='輸入發票號碼到同資料夾下的\'發票號碼.csv\'')
         self.label.pack()
-        self.autoCheckButton = tk.Button(
-            self.master, text='自動對獎', command=self.autoChecking)
+        self.autoCheckButton = tk.Button(self.master, text='自動對獎', command=self.autoChecking)
         self.autoCheckButton.pack(pady=5)
-        self.analyzeButton = tk.Button(
-            self.master, text='中獎分析', command=lambda e=self.ents: self.fetch(e))
+        self.analyzeButton = tk.Button(self.master, text='中獎分析', command=lambda e=self.ents: self.fetch(e))
         self.analyzeButton.pack(pady=5)
 
-        self.exitButton = tk.Button(
-            self.master, text='Exit', command=self.master.quit)
+        self.exitButton = tk.Button(self.master, text='Exit', command=self.master.quit)
         self.exitButton.pack(pady=5)
 
         self.canvasPic = None
@@ -268,7 +256,6 @@ class myGUI:
         self.ticketText.pack(pady=5)
 
         self.master.mainloop()
-        self.master.destroy()
 
     def claerBottom(self):
         if self.canvasPic != None:
@@ -287,7 +274,9 @@ class myGUI:
         winTicket = []
         rewardSet = []
         urls = []
+
         self.claerBottom()
+
         with open("./發票號碼.csv", 'r', encoding='utf-8', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
@@ -300,23 +289,18 @@ class myGUI:
 
         for i in titleDate:
             if int(i[1]) < 10:
-                urls.append(
-                    'https://www.etax.nat.gov.tw/etw-main/web/ETW183W2_'+str(i[0])+'0'+str(i[1]))
+                urls.append('https://www.etax.nat.gov.tw/etw-main/web/ETW183W2_'+str(i[0])+'0'+str(i[1]))
             else:
-                urls.append(
-                    'https://www.etax.nat.gov.tw/etw-main/web/ETW183W2_'+str(i[0])+str(i[1]))
+                urls.append('https://www.etax.nat.gov.tw/etw-main/web/ETW183W2_'+str(i[0])+str(i[1]))
 
         for i in range(len(urls)):
             rewardSet.append(self.getRewardNumber(urls[i]))
             rewardSet[len(rewardSet)-1].extend(titleDate[i])
-        print('rewardSet=', rewardSet)
 
         for row in csvRows:
             for index in range(len(row)):
                 ans += self.getReward(rewardSet[index], row[index], winTicket)
 
-        print('中獎金額', ans)
-        print('中獎名單', winTicket)
         self.ticketText_var.set('中獎金額:{}\n中獎名單:'.format(ans))
 
         self.scrollbar = tk.Scrollbar(self.master)
@@ -330,7 +314,6 @@ class myGUI:
 
         return ans
 
-        # print(csvRows)
         # 1-base 特別獎1000萬:1 二獎200萬:4 頭獎20萬:6 七碼相同4萬:8 末六碼相同1萬:9 末五碼相同4千:10 末四碼相同1千 末三碼相同200  增開六獎200元:13
 
     def drawChart(self):
@@ -340,11 +323,10 @@ class myGUI:
         self.instanciateChart()
 
     def instanciateChart(self, event=None):
-        # print(self.dictArr,self.chartIndex)
         drawitems = self.dictArr[self.chartIndex]
         labelArr = ['1000萬中獎物品統計(點一下圖片可看其他統計)', '1000萬中獎城市統計(點一下圖片可看其他統計)',
                     '200萬中獎物品統計(點一下圖片可看其他統計)', '200萬中獎城市統計(點一下圖片可看其他統計)']
-        # print(labelArr,self.chartIndex)
+
         self.claerBottom()
         self.chartText_var.set(labelArr[self.chartIndex])
         if not self.chartIndex&1:
@@ -356,6 +338,7 @@ class myGUI:
             drawitems = dict(drawitems.most_common(15))
         if not self.chartIndex&1:
             drawitems = dict(drawitems.most_common(len(drawitems)))
+            
         fig = plt.figure(figsize=(20*len(drawitems)/20, 5))
         value = []
         x_labels = []
