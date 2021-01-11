@@ -296,7 +296,6 @@ class myGUI:
         csvRows = []
         ans = 0
         winTicket = []
-        global rewardSet
         rewardSet = []
         urls = []
 
